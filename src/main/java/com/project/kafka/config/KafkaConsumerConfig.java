@@ -27,6 +27,8 @@ public class KafkaConsumerConfig {
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         // 오프셋을 찾을 수 없을 때 가장 최신의 메시지부터 읽기 시작하도록 설정
+        // 이 컨슈머 그룹 group_1 이 처음 생성되었을 때 기존에 쌓여있던 메시지는 무시하고 지금 이 수간부터 들어오는 메시지만 받겠단 뜻
+        // 과거 데이터부터 다 훑어야 한다면 earliest로 변경
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 
         // 토픽에 대해서 auto commit으로 100초로 간격을 설정

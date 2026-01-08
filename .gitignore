@@ -37,4 +37,7 @@ out/
 .vscode/
 
 ### kafka data
-kafka*
+/kafka-data/
+kafka-*/
+
+.DS_Store

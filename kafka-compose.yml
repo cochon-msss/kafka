@@ -11,7 +11,7 @@ services:
     ports:
       - "9092:9092" # 카프카 기본 통신 포트, 클라이언트들이 이 포트를 통해 카프카 브로커와 통신한다.
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1 # 카프카 브로커가 클리어언트(ex spring)에게 접속하려면 여기로 와 라고 알려주는 주소
+      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # 카프카가 자신의 상태를 보고할 주키퍼의 위치를 알려준다. 도커 컴포즈 내부 네트워크 덕분에 서비스 이름인 zookeeper로 직접 통신 가능
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

@@ -11,6 +11,11 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.listener.ContainerProperties.AckMode;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @EnableKafka // kafka 리스너 어노테이션 활성화, kafka 리스너가 spring 컨텍스트에서 작동하도록 한다.
@@ -22,7 +27,7 @@ public class KafkaConsumerConfig {
         // ConsumerFactory 구현체를 반환하는 로직 작성
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "group_1");
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "group_2");
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
@@ -42,10 +47,32 @@ public class KafkaConsumerConfig {
     }
 
     // kafka 리스너 컨테이너 팩토리 정의, kafka 리스너를 컨테이너화하여 실행
+    // 네트워크 순단이나 DB 락 등으로 인해 컨슈머가 일시적으로 실패할 수 있다
+    // 이때 포기하지 않고 재시도를 한 뒤 그래도 안 되면 별도의 쓰레기통(DLQ, Dead Letter Queue) 토픽으로 보내서 나중에 원인
+    // 분석 진행해야한다.
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+            ConsumerFactory<String, Object> consumerFactory,
+            KafkaTemplate<String, Object> kafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
+        factory.setConsumerFactory(consumerFactory);
+
+        // 에러 핸들러 추가
+
+        // 재시도 실패 시 메시지를 보낼 DLQ 설정 (실패한 토픽명.DLQ로 전송됨)
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate);
+
+        // 재시도 정책 : 1초 관격으로 최대 3번 재시도
+        FixedBackOff backOff = new FixedBackOff(1000L, 3L);
+
+        // 에러 핸들러 등록
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, backOff);
+
+        // 특정 예외는 재시도 하지 않도록 설정 가능 (옵션)
+        // errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+
+        factory.setCommonErrorHandler(errorHandler);
+
         return factory;
     }
 

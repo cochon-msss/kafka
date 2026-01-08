@@ -21,6 +21,11 @@ public class KafkaProducerConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+        // json 직렬화 사용 시
+        // config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+        // JsonSerialize.class);
+
         return new DefaultKafkaProducerFactory<>(config);
     }
 

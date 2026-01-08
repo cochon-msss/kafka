@@ -14,7 +14,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.listener.ContainerProperties.AckMode;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
@@ -43,7 +44,17 @@ public class KafkaConsumerConfig {
         // config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, true);
         // config.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "100000");
 
-        return new DefaultKafkaConsumerFactory<>(config);
+        // 자동 커밋 끈다. 스프링에게 제어권을 넘긴다.
+        // config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+        // json 역직렬화 사용 시
+        // JsonDeserializer<Object> deserializer = new JsonDeserializer<>();
+        // deserializer.addTrustedPackages("*"); // 모든 패키지 신뢰 설정 (보안상 주의 필요)
+
+        return new DefaultKafkaConsumerFactory<>(config
+        // ,new StringDeserializer(), json 역직렬화 사용 시
+        // new ErrorHandlingDeserializer<>()
+        );
     }
 
     // kafka 리스너 컨테이너 팩토리 정의, kafka 리스너를 컨테이너화하여 실행
@@ -56,6 +67,8 @@ public class KafkaConsumerConfig {
             KafkaTemplate<String, Object> kafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
+
+        // factory.setConcurrency(3); // 컨슈머 인스턴스 수 설정 (병렬 처리 가능)
 
         // 에러 핸들러 추가
 
@@ -70,6 +83,9 @@ public class KafkaConsumerConfig {
 
         // 특정 예외는 재시도 하지 않도록 설정 가능 (옵션)
         // errorHandler.addNotRetryableExceptions(IllegalArgumentException.class);
+
+        // 수동 커밋 모드 설정 (옵션)
+        // factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 
         factory.setCommonErrorHandler(errorHandler);
 

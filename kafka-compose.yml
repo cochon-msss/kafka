@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  zookeeper: # Zookeeper service (주키퍼는 카프카의 '비서' 혹은 '상태관리자')
+    image: wurstmeister/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181" # 주키퍼 기본 통신 포트 카프카 브로커들이 이 포트를 통해 주키퍼에게 살아있다는 신호 보낸댜.
+  kafka: # Kafka service
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092" # 카프카 기본 통신 포트, 클라이언트들이 이 포트를 통해 카프카 브로커와 통신한다.
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 127.0.0.1 # 카프카 브로커가 클리어언트(ex spring)에게 접속하려면 여기로 와 라고 알려주는 주소
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # 카프카가 자신의 상태를 보고할 주키퍼의 위치를 알려준다. 도커 컴포즈 내부 네트워크 덕분에 서비스 이름인 zookeeper로 직접 통신 가능
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./kafka-data:/kafka # 카프카 데이터를 영구 저장하기 위한 볼륨 마운트
